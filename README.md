@@ -36,3 +36,13 @@ firebase-habit-tracker
 ├── habit-db.js
 ├── habit-app.js
 └── README.md
+
+## Live Demo
+
+Try the live application here:
+
+https://fazal305.github.io/firebase-habit-tracker/
+
+## Author
+
+Built by Fazal Abbas.
