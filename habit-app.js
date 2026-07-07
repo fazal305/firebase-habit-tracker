@@ -6,13 +6,18 @@ const appState = {
     completionUnsubscribe: null
 };
 
-let habitModal;
+const appRoot = document.getElementById("app-root");
+const habitModal = document.getElementById("habit-modal");
+const habitForm = document.getElementById("habit-form");
+const modalTitle = document.getElementById("habit-modal-title");
+const habitIdInput = document.getElementById("habit-id");
+const habitNameInput = document.getElementById("habit-name");
+const habitIconInput = document.getElementById("habit-emoji");
+const habitFrequencyInput = document.getElementById("habit-frequency");
+const habitColorInput = document.getElementById("habit-color");
 
-/* Starts the app and watches Firebase login state. */
 function init() {
-    habitModal = new bootstrap.Modal(document.getElementById("habit-modal"));
-
-    watchAuthState(function(user) {
+    watchAuthState(function (user) {
         appState.currentUser = user;
 
         if (user) {
@@ -23,80 +28,124 @@ function init() {
             renderAuthScreen("signin");
         }
     });
+
+    setupStaticEvents();
 }
 
-/* Renders the sign in or sign up screen. */
+function setupStaticEvents() {
+    document.getElementById("close-modal-btn").addEventListener("click", closeHabitModal);
+    document.getElementById("cancel-modal-btn").addEventListener("click", closeHabitModal);
+    habitForm.addEventListener("submit", handleHabitFormSubmit);
+
+    habitModal.addEventListener("click", function (event) {
+        if (event.target === habitModal) {
+            closeHabitModal();
+        }
+    });
+
+    document.querySelectorAll(".emoji-option").forEach(function (button) {
+        button.addEventListener("click", function () {
+            document.querySelectorAll(".emoji-option").forEach(function (option) {
+                option.classList.remove("active");
+            });
+
+            button.classList.add("active");
+            habitIconInput.value = button.dataset.emoji;
+        });
+    });
+}
+
+function createElement(tagName, className, textContent) {
+    const element = document.createElement(tagName);
+
+    if (className) {
+        element.className = className;
+    }
+
+    if (textContent !== undefined) {
+        element.textContent = textContent;
+    }
+
+    return element;
+}
+
 function renderAuthScreen(mode) {
     const isSignUp = mode === "signup";
+    appRoot.innerHTML = "";
 
-    $("#app-root").html(`
-        <main class="auth-page">
-            <section class="auth-card">
-                <span class="auth-badge">Firebase Auth</span>
+    const page = createElement("main", "auth-page");
+    const card = createElement("section", "auth-card");
+    const badge = createElement("span", "auth-badge", "Firebase Auth");
+    const title = createElement("h1", "", isSignUp ? "Create Account" : "Welcome Back");
+    const intro = createElement(
+        "p",
+        "",
+        isSignUp
+            ? "Create your account and start tracking habits in the cloud."
+            : "Sign in to continue your habit streaks."
+    );
 
-                <h1>${isSignUp ? "Create Account" : "Welcome Back"}</h1>
+    const form = createElement("form");
+    form.id = isSignUp ? "signup-form" : "signin-form";
+    form.appendChild(createAuthField("auth-email", "Email", "email", "you@example.com"));
+    form.appendChild(createAuthField("auth-password", "Password", "password", "Minimum 6 characters"));
 
-                <p>
-                    ${isSignUp
-                        ? "Create your account and start tracking habits in the cloud."
-                        : "Sign in to continue your habit streaks."}
-                </p>
+    if (isSignUp) {
+        form.appendChild(createAuthField("auth-confirm-password", "Confirm Password", "password", "Repeat password"));
+    }
 
-                <form id="${isSignUp ? "signup-form" : "signin-form"}">
-                    <div class="mb-3">
-                        <label class="form-label" for="auth-email">Email</label>
-                        <input class="form-control" id="auth-email" type="email" placeholder="you@example.com">
-                        <div class="form-error" id="auth-email-error"></div>
-                    </div>
+    const formError = createElement("small", "form-error");
+    formError.id = "auth-form-error";
+    const submitButton = createElement("button", "btn-neon full-width", isSignUp ? "Sign Up" : "Sign In");
+    submitButton.type = "submit";
+    form.append(formError, submitButton);
+    form.addEventListener("submit", isSignUp ? handleSignUp : handleSignIn);
 
-                    <div class="mb-3">
-                        <label class="form-label" for="auth-password">Password</label>
-                        <input class="form-control" id="auth-password" type="password" placeholder="Minimum 6 characters">
-                        <div class="form-error" id="auth-password-error"></div>
-                    </div>
+    const switchWrap = createElement("div", "auth-switch");
+    switchWrap.appendChild(document.createTextNode(isSignUp ? "Already have an account? " : "Do not have an account? "));
+    const switchButton = createElement("button", "", isSignUp ? "Sign In" : "Sign Up");
+    switchButton.type = "button";
+    switchButton.addEventListener("click", function () {
+        renderAuthScreen(isSignUp ? "signin" : "signup");
+    });
+    switchWrap.appendChild(switchButton);
 
-                    ${isSignUp ? `
-                        <div class="mb-3">
-                            <label class="form-label" for="auth-confirm-password">Confirm Password</label>
-                            <input class="form-control" id="auth-confirm-password" type="password" placeholder="Repeat password">
-                            <div class="form-error" id="auth-confirm-error"></div>
-                        </div>
-                    ` : ""}
-
-                    <div class="form-error" id="auth-form-error"></div>
-
-                    <button class="btn btn-neon w-100" id="auth-submit-btn" type="submit">
-                        ${isSignUp ? "Sign Up" : "Sign In"}
-                    </button>
-                </form>
-
-                <div class="auth-switch">
-                    ${isSignUp ? "Already have an account?" : "Don't have an account?"}
-                    <button type="button" id="switch-auth-btn" data-mode="${isSignUp ? "signin" : "signup"}">
-                        ${isSignUp ? "Sign In" : "Sign Up"}
-                    </button>
-                </div>
-            </section>
-        </main>
-    `);
+    card.append(badge, title, intro, form, switchWrap);
+    page.appendChild(card);
+    appRoot.appendChild(page);
 }
 
-/* Starts Firestore real-time listeners for habits and completions. */
+function createAuthField(id, labelText, type, placeholder) {
+    const label = createElement("label", "form-field");
+    label.setAttribute("for", id);
+
+    const labelSpan = createElement("span", "", labelText);
+    const input = createElement("input");
+    input.id = id;
+    input.type = type;
+    input.placeholder = placeholder;
+
+    const error = createElement("small", "form-error");
+    error.id = `${id}-error`;
+
+    label.append(labelSpan, input, error);
+    return label;
+}
+
 function startRealtimeListeners(userId) {
     stopRealtimeListeners();
 
-    appState.habitUnsubscribe = loadHabits(userId, function(habits) {
+    appState.habitUnsubscribe = loadHabits(userId, function (habits) {
         appState.habits = habits;
         renderDashboard(appState.currentUser);
     });
 
-    appState.completionUnsubscribe = loadCompletions(userId, function(completions) {
+    appState.completionUnsubscribe = loadCompletions(userId, function (completions) {
         appState.completions = completions;
         renderDashboard(appState.currentUser);
     });
 }
 
-/* Stops active Firestore listeners when user logs out. */
 function stopRealtimeListeners() {
     if (appState.habitUnsubscribe) {
         appState.habitUnsubscribe();
@@ -112,12 +161,43 @@ function stopRealtimeListeners() {
     appState.completions = [];
 }
 
-/* Renders the full logged-in dashboard. */
 function renderDashboard(user) {
     if (!user) {
         return;
     }
 
+    appRoot.innerHTML = "";
+
+    const shell = createElement("main", "dashboard-shell");
+    shell.append(
+        renderHeader(user),
+        renderDateCard(),
+        renderStatsGrid(),
+        renderHabitsGrid(),
+        renderWeeklyOverview(),
+        renderFloatingAddButton()
+    );
+
+    appRoot.appendChild(shell);
+}
+
+function renderHeader(user) {
+    const header = createElement("header", "app-header");
+    const titleWrap = createElement("div");
+    titleWrap.append(
+        createElement("h1", "brand-title", "Firebase Habit Tracker"),
+        createElement("div", "user-email", user.email)
+    );
+
+    const signOutButton = createElement("button", "secondary-btn", "Sign Out");
+    signOutButton.type = "button";
+    signOutButton.addEventListener("click", signOutUser);
+
+    header.append(titleWrap, signOutButton);
+    return header;
+}
+
+function renderDateCard() {
     const todayText = new Date().toLocaleDateString("en-US", {
         weekday: "long",
         year: "numeric",
@@ -125,181 +205,161 @@ function renderDashboard(user) {
         day: "numeric"
     });
 
-    $("#app-root").html(`
-        <main class="dashboard-shell">
-            <header class="app-header">
-                <div>
-                    <h1 class="brand-title">Firebase Habit Tracker</h1>
-                    <div class="user-email">${user.email}</div>
-                </div>
-
-                <button class="btn btn-outline-light" id="signout-btn">Sign Out</button>
-            </header>
-
-            <section class="date-card">
-                <span>Today</span>
-                <h2>${todayText}</h2>
-            </section>
-
-            <section class="row g-3 mb-4">
-                ${renderStats()}
-            </section>
-
-            <section class="row g-3">
-                ${renderHabitCards()}
-            </section>
-
-            ${renderWeeklyOverview()}
-
-            <button class="floating-add-btn" id="open-add-habit-btn" aria-label="Add habit">+</button>
-        </main>
-    `);
+    const card = createElement("section", "date-card");
+    card.append(createElement("span", "", "Today"), createElement("h2", "", todayText));
+    return card;
 }
 
-/* Renders dashboard stat cards. */
-function renderStats() {
-    const totalHabits = appState.habits.length;
+function renderStatsGrid() {
+    const grid = createElement("section", "stats-grid");
     const weekDates = getLastSevenDates();
-    const longestCurrentStreak = getLongestCurrentStreak();
-    const perfectDays = getPerfectDaysThisWeek(weekDates);
+    const stats = [
+        ["Total Habits", appState.habits.length],
+        ["Perfect Days This Week", getPerfectDaysThisWeek(weekDates)],
+        ["Longest Current Streak", getLongestCurrentStreak()]
+    ];
 
-    return `
-        <div class="col-md-4">
-            <article class="stat-card">
-                <p>Total Habits</p>
-                <strong>${totalHabits}</strong>
-            </article>
-        </div>
+    stats.forEach(function (stat) {
+        const card = createElement("article", "stat-card");
+        card.append(createElement("p", "", stat[0]), createElement("strong", "", String(stat[1])));
+        grid.appendChild(card);
+    });
 
-        <div class="col-md-4">
-            <article class="stat-card">
-                <p>Perfect Days This Week</p>
-                <strong>${perfectDays}</strong>
-            </article>
-        </div>
-
-        <div class="col-md-4">
-            <article class="stat-card">
-                <p>Longest Current Streak</p>
-                <strong>${longestCurrentStreak}</strong>
-            </article>
-        </div>
-    `;
+    return grid;
 }
 
-/* Renders all habit cards for today. */
-function renderHabitCards() {
+function renderHabitsGrid() {
+    const grid = createElement("section", "habit-grid");
+
     if (appState.habits.length === 0) {
-        return `
-            <div class="col-12">
-                <section class="empty-state">
-                    <h2>No habits yet</h2>
-                    <p>Create your first habit and start building a real streak.</p>
-                    <button class="btn btn-neon" id="empty-create-btn">+ Create Your First Habit</button>
-                </section>
-            </div>
-        `;
+        const empty = createElement("section", "empty-state");
+        empty.append(
+            createElement("h2", "", "No habits yet"),
+            createElement("p", "", "Create your first habit and start building a real streak.")
+        );
+
+        const button = createElement("button", "btn-neon", "+ Create Your First Habit");
+        button.type = "button";
+        button.addEventListener("click", openAddHabitModal);
+        empty.appendChild(button);
+        grid.appendChild(empty);
+        return grid;
     }
 
-    return appState.habits.map(function(habit) {
-        const today = getTodayString();
-        const isCompleted = isHabitCompletedOnDate(habit.id, today);
-        const weekCount = getWeeklyCompletionCount(habit.id);
-        const completionPercent = Math.round((weekCount / 7) * 100);
-        const habitCompletions = getCompletionsForHabit(habit.id);
-        const currentStreak = calculateStreak(habitCompletions);
+    appState.habits.forEach(function (habit) {
+        grid.appendChild(renderHabitCard(habit));
+    });
 
-        return `
-            <div class="col-md-6 col-xl-4">
-                <article class="habit-card" style="border-left-color: ${habit.color};">
-                    <div class="habit-top">
-                        <div>
-                            <div class="habit-emoji">${habit.emoji}</div>
-                            <h3 class="habit-name">${habit.name}</h3>
-                            <div class="habit-frequency">${habit.frequency}</div>
-                        </div>
-
-                        <button class="complete-btn ${isCompleted ? "completed" : ""}" data-id="${habit.id}">
-                            ${isCompleted ? "✔" : ""}
-                        </button>
-                    </div>
-
-                    <div class="streak-badge">🔥 ${currentStreak} day streak</div>
-
-                    <p class="mb-2 text-secondary">This week: ${weekCount}/7 days</p>
-
-                    <div class="progress">
-                        <div class="progress-bar" style="width: ${completionPercent}%"></div>
-                    </div>
-
-                    <div class="habit-actions">
-                        <button class="btn btn-sm btn-outline-light edit-habit-btn" data-id="${habit.id}">Edit</button>
-                        <button class="btn btn-sm btn-outline-danger delete-habit-btn" data-id="${habit.id}">Delete</button>
-                    </div>
-                </article>
-            </div>
-        `;
-    }).join("");
+    return grid;
 }
 
-/* Renders the weekly completion overview. */
+function renderHabitCard(habit) {
+    const today = getTodayString();
+    const isCompleted = isHabitCompletedOnDate(habit.id, today);
+    const weekCount = getWeeklyCompletionCount(habit.id);
+    const completionPercent = Math.round((weekCount / 7) * 100);
+    const currentStreak = calculateStreak(getCompletionsForHabit(habit.id));
+
+    const card = createElement("article", "habit-card");
+    card.style.borderLeftColor = habit.color;
+
+    const top = createElement("div", "habit-top");
+    const textWrap = createElement("div");
+    textWrap.append(
+        createElement("div", "habit-emoji", habit.emoji || "HBT"),
+        createElement("h3", "habit-name", habit.name),
+        createElement("div", "habit-frequency", habit.frequency)
+    );
+
+    const completeButton = createElement("button", isCompleted ? "complete-btn completed" : "complete-btn", isCompleted ? "OK" : "");
+    completeButton.type = "button";
+    completeButton.setAttribute("aria-label", isCompleted ? "Mark incomplete" : "Mark complete");
+    completeButton.addEventListener("click", function () {
+        handleToggleComplete(habit.id);
+    });
+
+    top.append(textWrap, completeButton);
+
+    const progress = createElement("div", "progress");
+    const progressBar = createElement("div", "progress-bar");
+    progressBar.style.width = `${completionPercent}%`;
+    progress.appendChild(progressBar);
+
+    const actions = createElement("div", "habit-actions");
+    const editButton = createElement("button", "secondary-btn small-btn", "Edit");
+    const deleteButton = createElement("button", "danger-btn small-btn", "Delete");
+    editButton.type = "button";
+    deleteButton.type = "button";
+    editButton.addEventListener("click", function () { openEditHabitModal(habit.id); });
+    deleteButton.addEventListener("click", function () { handleDeleteHabit(habit.id); });
+    actions.append(editButton, deleteButton);
+
+    card.append(
+        top,
+        createElement("div", "streak-badge", `${currentStreak} day streak`),
+        createElement("p", "muted-text", `This week: ${weekCount}/7 days`),
+        progress,
+        actions
+    );
+
+    return card;
+}
+
 function renderWeeklyOverview() {
+    const panel = createElement("section", "weekly-panel");
+
     if (appState.habits.length === 0) {
-        return "";
+        return panel;
     }
 
     const weekDates = getLastSevenDates();
+    panel.appendChild(createElement("h2", "", "Weekly Overview"));
 
-    const rows = appState.habits.map(function(habit) {
-        const dots = weekDates.map(function(date) {
-            const dotClass = isHabitCompletedOnDate(habit.id, date) ? "complete" : "";
+    const header = createElement("div", "week-row week-header");
+    header.appendChild(createElement("div", "", "Habit"));
+    weekDates.forEach(function (date) {
+        header.appendChild(createElement("div", "center-text", date.slice(5)));
+    });
+    panel.appendChild(header);
 
-            return `<span class="week-dot ${dotClass}" title="${date}"></span>`;
-        }).join("");
+    appState.habits.forEach(function (habit) {
+        const row = createElement("div", "week-row");
+        row.appendChild(createElement("div", "week-habit-name", `${habit.emoji || "HBT"} ${habit.name}`));
 
-        return `
-            <div class="week-row">
-                <div class="week-habit-name">${habit.emoji} ${habit.name}</div>
-                ${dots}
-            </div>
-        `;
-    }).join("");
+        weekDates.forEach(function (date) {
+            const dot = createElement("span", isHabitCompletedOnDate(habit.id, date) ? "week-dot complete" : "week-dot");
+            dot.title = date;
+            row.appendChild(dot);
+        });
 
-    return `
-        <section class="weekly-panel">
-            <h2 class="mb-3">Weekly Overview</h2>
+        panel.appendChild(row);
+    });
 
-            <div class="week-row text-secondary">
-                <div>Habit</div>
-                ${weekDates.map(function(date) {
-                    return `<div class="text-center">${date.slice(5)}</div>`;
-                }).join("")}
-            </div>
-
-            ${rows}
-        </section>
-    `;
+    return panel;
 }
 
-/* Opens the habit modal for adding a new habit. */
+function renderFloatingAddButton() {
+    const button = createElement("button", "floating-add-btn", "+");
+    button.type = "button";
+    button.setAttribute("aria-label", "Add habit");
+    button.addEventListener("click", openAddHabitModal);
+    return button;
+}
+
 function openAddHabitModal() {
-    $("#habit-modal-title").text("Add Habit");
-    $("#habit-id").val("");
-    $("#habit-name").val("");
-    $("#habit-emoji").val("💧");
-    $("#habit-frequency").val("daily");
-    $("#habit-color").val("#00f5ff");
-
-    $(".emoji-option").removeClass("active");
-    $('.emoji-option[data-emoji="💧"]').addClass("active");
-
+    modalTitle.textContent = "Add Habit";
+    habitIdInput.value = "";
+    habitNameInput.value = "";
+    habitIconInput.value = "WTR";
+    habitFrequencyInput.value = "daily";
+    habitColorInput.value = "#00f5ff";
+    setActiveIcon("WTR");
     clearErrors();
-    habitModal.show();
+    openHabitModal();
 }
 
-/* Opens the habit modal for editing an existing habit. */
 function openEditHabitModal(habitId) {
-    const habit = appState.habits.find(function(item) {
+    const habit = appState.habits.find(function (item) {
         return item.id === habitId;
     });
 
@@ -307,31 +367,40 @@ function openEditHabitModal(habitId) {
         return;
     }
 
-    $("#habit-modal-title").text("Edit Habit");
-    $("#habit-id").val(habit.id);
-    $("#habit-name").val(habit.name);
-    $("#habit-emoji").val(habit.emoji);
-    $("#habit-frequency").val(habit.frequency);
-    $("#habit-color").val(habit.color);
-
-    $(".emoji-option").removeClass("active");
-    $(`.emoji-option[data-emoji="${habit.emoji}"]`).addClass("active");
-
+    modalTitle.textContent = "Edit Habit";
+    habitIdInput.value = habit.id;
+    habitNameInput.value = habit.name;
+    habitIconInput.value = habit.emoji || "WTR";
+    habitFrequencyInput.value = habit.frequency;
+    habitColorInput.value = habit.color;
+    setActiveIcon(habit.emoji || "WTR");
     clearErrors();
-    habitModal.show();
+    openHabitModal();
 }
 
-/* Handles adding or updating a habit from the modal form. */
+function openHabitModal() {
+    habitModal.classList.remove("hidden");
+    habitModal.setAttribute("aria-hidden", "false");
+    habitNameInput.focus();
+}
+
+function closeHabitModal() {
+    habitModal.classList.add("hidden");
+    habitModal.setAttribute("aria-hidden", "true");
+}
+
+function setActiveIcon(icon) {
+    document.querySelectorAll(".emoji-option").forEach(function (button) {
+        button.classList.toggle("active", button.dataset.emoji === icon);
+    });
+}
+
 async function handleHabitFormSubmit(event) {
     event.preventDefault();
-
     clearErrors();
 
-    const habitId = $("#habit-id").val();
-    const habitName = $("#habit-name").val().trim();
-    const habitEmoji = $("#habit-emoji").val();
-    const habitFrequency = $("#habit-frequency").val();
-    const habitColor = $("#habit-color").val();
+    const habitId = habitIdInput.value;
+    const habitName = habitNameInput.value.trim();
 
     if (!habitName) {
         showError("habit-name-error", "Habit name is required.");
@@ -340,9 +409,9 @@ async function handleHabitFormSubmit(event) {
 
     const habitData = {
         name: habitName,
-        emoji: habitEmoji,
-        frequency: habitFrequency,
-        color: habitColor
+        emoji: habitIconInput.value,
+        frequency: habitFrequencyInput.value,
+        color: habitColorInput.value
     };
 
     try {
@@ -352,13 +421,12 @@ async function handleHabitFormSubmit(event) {
             await addHabit(appState.currentUser.uid, habitData);
         }
 
-        habitModal.hide();
+        closeHabitModal();
     } catch (error) {
         showError("habit-form-error", "Could not save habit. Check Firebase rules.");
     }
 }
 
-/* Handles completing or uncompleting a habit for today. */
 async function handleToggleComplete(habitId) {
     const today = getTodayString();
     const isCompleted = isHabitCompletedOnDate(habitId, today);
@@ -374,11 +442,8 @@ async function handleToggleComplete(habitId) {
     }
 }
 
-/* Handles deleting a habit after confirmation. */
 async function handleDeleteHabit(habitId) {
-    const confirmed = confirm("Delete this habit and its completion history?");
-
-    if (!confirmed) {
+    if (!confirm("Delete this habit and its completion history?")) {
         return;
     }
 
@@ -389,15 +454,12 @@ async function handleDeleteHabit(habitId) {
     }
 }
 
-/* Handles sign in form submission. */
 async function handleSignIn(event) {
     event.preventDefault();
-
     clearErrors();
 
-    const email = $("#auth-email").val().trim();
-    const password = $("#auth-password").val();
-
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
     const result = await signIn(email, password);
 
     if (!result.success) {
@@ -405,18 +467,16 @@ async function handleSignIn(event) {
     }
 }
 
-/* Handles sign up form submission. */
 async function handleSignUp(event) {
     event.preventDefault();
-
     clearErrors();
 
-    const email = $("#auth-email").val().trim();
-    const password = $("#auth-password").val();
-    const confirmPassword = $("#auth-confirm-password").val();
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
+    const confirmPassword = document.getElementById("auth-confirm-password").value;
 
     if (password !== confirmPassword) {
-        showError("auth-confirm-error", "Passwords do not match.");
+        showError("auth-confirm-password-error", "Passwords do not match.");
         return;
     }
 
@@ -427,105 +487,65 @@ async function handleSignUp(event) {
     }
 }
 
-/* Returns today as YYYY-MM-DD. */
 function getTodayString() {
-    return new Date().toISOString().split("T")[0];
+    return formatDateKey(new Date());
 }
 
-/* Checks if a habit is completed on a specific date. */
+function formatDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
 function isHabitCompletedOnDate(habitId, date) {
-    return appState.completions.some(function(completion) {
+    return appState.completions.some(function (completion) {
         return completion.habitId === habitId && completion.date === date;
     });
 }
 
-/* Returns all completions for one habit. */
 function getCompletionsForHabit(habitId) {
-    return appState.completions.filter(function(completion) {
+    return appState.completions.filter(function (completion) {
         return completion.habitId === habitId;
     });
 }
 
-/* Counts how many times one habit was completed in the last 7 days. */
 function getWeeklyCompletionCount(habitId) {
-    const weekDates = getLastSevenDates();
-
-    return weekDates.filter(function(date) {
+    return getLastSevenDates().filter(function (date) {
         return isHabitCompletedOnDate(habitId, date);
     }).length;
 }
 
-/* Finds the longest active streak across all habits. */
 function getLongestCurrentStreak() {
-    let longestStreak = 0;
-
-    appState.habits.forEach(function(habit) {
-        const habitCompletions = getCompletionsForHabit(habit.id);
-        const streak = calculateStreak(habitCompletions);
-
-        if (streak > longestStreak) {
-            longestStreak = streak;
-        }
-    });
-
-    return longestStreak;
+    return appState.habits.reduce(function (longestStreak, habit) {
+        return Math.max(longestStreak, calculateStreak(getCompletionsForHabit(habit.id)));
+    }, 0);
 }
 
-/* Counts days this week where every habit was completed. */
 function getPerfectDaysThisWeek(weekDates) {
     if (appState.habits.length === 0) {
         return 0;
     }
 
-    return weekDates.filter(function(date) {
-        return appState.habits.every(function(habit) {
+    return weekDates.filter(function (date) {
+        return appState.habits.every(function (habit) {
             return isHabitCompletedOnDate(habit.id, date);
         });
     }).length;
 }
 
-/* Shows an inline error message. */
 function showError(elementId, message) {
-    $(`#${elementId}`).text(message);
+    const element = document.getElementById(elementId);
+
+    if (element) {
+        element.textContent = message;
+    }
 }
 
-/* Clears all visible form error messages. */
 function clearErrors() {
-    $(".form-error").text("");
+    document.querySelectorAll(".form-error").forEach(function (element) {
+        element.textContent = "";
+    });
 }
-
-$(document).on("submit", "#signin-form", handleSignIn);
-
-$(document).on("submit", "#signup-form", handleSignUp);
-
-$(document).on("click", "#switch-auth-btn", function() {
-    renderAuthScreen($(this).data("mode"));
-});
-
-$(document).on("click", "#signout-btn", async function() {
-    await signOutUser();
-});
-
-$(document).on("click", "#open-add-habit-btn, #empty-create-btn", openAddHabitModal);
-
-$(document).on("click", ".edit-habit-btn", function() {
-    openEditHabitModal($(this).data("id"));
-});
-
-$(document).on("click", ".delete-habit-btn", function() {
-    handleDeleteHabit($(this).data("id"));
-});
-
-$(document).on("click", ".complete-btn", function() {
-    handleToggleComplete($(this).data("id"));
-});
-
-$(document).on("click", ".emoji-option", function() {
-    $(".emoji-option").removeClass("active");
-    $(this).addClass("active");
-    $("#habit-emoji").val($(this).data("emoji"));
-});
-
-$("#habit-form").on("submit", handleHabitFormSubmit);
 
 init();

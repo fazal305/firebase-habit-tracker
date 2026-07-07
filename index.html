@@ -1,99 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A Firebase-powered habit tracker with authentication, Firestore sync, daily completions, streaks, and weekly progress."
+    />
 
     <title>Firebase Habit Tracker</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="habit-styles.css">
-</head>
-<body>
-
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="habit-styles.css" />
+  </head>
+  <body>
     <div id="app-root"></div>
 
-    <div class="modal fade" id="habit-modal" tabindex="-1" aria-labelledby="habit-modal-title" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content habit-modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title fs-5" id="habit-modal-title">Add Habit</h2>
-
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <form id="habit-form">
-                    <div class="modal-body">
-                        <input type="hidden" id="habit-id">
-
-                        <div class="mb-3">
-                            <label for="habit-name" class="form-label">Habit Name</label>
-                            <input type="text" class="form-control" id="habit-name" placeholder="Example: Drink water">
-                            <div class="form-error" id="habit-name-error"></div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Choose Emoji</label>
-
-                            <div class="emoji-picker">
-                                <button type="button" class="emoji-option active" data-emoji="💧">💧</button>
-                                <button type="button" class="emoji-option" data-emoji="🏃">🏃</button>
-                                <button type="button" class="emoji-option" data-emoji="📚">📚</button>
-                                <button type="button" class="emoji-option" data-emoji="🧘">🧘</button>
-                                <button type="button" class="emoji-option" data-emoji="🥗">🥗</button>
-                                <button type="button" class="emoji-option" data-emoji="🌙">🌙</button>
-                            </div>
-
-                            <input type="hidden" id="habit-emoji" value="💧">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="habit-frequency" class="form-label">Frequency</label>
-
-                            <select class="form-select" id="habit-frequency">
-                                <option value="daily">Daily</option>
-                                <option value="weekdays">Weekdays Only</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="habit-color" class="form-label">Color Label</label>
-
-                            <select class="form-select" id="habit-color">
-                                <option value="#00f5ff">Neon Cyan</option>
-                                <option value="#00ff88">Success Green</option>
-                                <option value="#f5a623">Amber</option>
-                                <option value="#ff3860">Danger Red</option>
-                                <option value="#9b5cff">Neon Purple</option>
-                            </select>
-                        </div>
-
-                        <div class="form-error" id="habit-form-error"></div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-neon" id="save-habit-btn">Save Habit</button>
-                    </div>
-                </form>
-            </div>
+    <div class="modal-backdrop hidden" id="habit-modal" aria-hidden="true">
+      <div
+        class="habit-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="habit-modal-title"
+      >
+        <div class="modal-header">
+          <h2 id="habit-modal-title">Add Habit</h2>
+          <button
+            type="button"
+            class="icon-btn"
+            id="close-modal-btn"
+            aria-label="Close"
+          >
+            x
+          </button>
         </div>
+
+        <form id="habit-form">
+          <input type="hidden" id="habit-id" />
+
+          <label class="form-field" for="habit-name">
+            <span>Habit Name</span>
+            <input
+              type="text"
+              id="habit-name"
+              placeholder="Example: Drink water"
+            />
+            <small class="form-error" id="habit-name-error"></small>
+          </label>
+
+          <div class="form-field">
+            <span>Choose Icon</span>
+            <div class="emoji-picker">
+              <button
+                type="button"
+                class="emoji-option active"
+                data-emoji="WTR"
+              >
+                WTR
+              </button>
+              <button type="button" class="emoji-option" data-emoji="RUN">
+                RUN
+              </button>
+              <button type="button" class="emoji-option" data-emoji="READ">
+                READ
+              </button>
+              <button type="button" class="emoji-option" data-emoji="CALM">
+                CALM
+              </button>
+              <button type="button" class="emoji-option" data-emoji="FOOD">
+                FOOD
+              </button>
+              <button type="button" class="emoji-option" data-emoji="REST">
+                REST
+              </button>
+            </div>
+            <input type="hidden" id="habit-emoji" value="WTR" />
+          </div>
+
+          <label class="form-field" for="habit-frequency">
+            <span>Frequency</span>
+            <select id="habit-frequency">
+              <option value="daily">Daily</option>
+              <option value="weekdays">Weekdays Only</option>
+            </select>
+          </label>
+
+          <label class="form-field" for="habit-color">
+            <span>Color Label</span>
+            <select id="habit-color">
+              <option value="#00f5ff">Neon Cyan</option>
+              <option value="#00ff88">Success Green</option>
+              <option value="#f5a623">Amber</option>
+              <option value="#ff3860">Danger Red</option>
+              <option value="#9b5cff">Neon Purple</option>
+            </select>
+          </label>
+
+          <small class="form-error" id="habit-form-error"></small>
+
+          <div class="modal-footer">
+            <button type="button" class="secondary-btn" id="cancel-modal-btn">
+              Cancel
+            </button>
+            <button type="submit" class="btn-neon" id="save-habit-btn">
+              Save Habit
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <script src="habit-auth.js"></script>
     <script src="habit-db.js"></script>
     <script src="habit-app.js"></script>
-</body>
+  </body>
 </html>

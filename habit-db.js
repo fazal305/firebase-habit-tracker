@@ -12,10 +12,10 @@ function getCompletionsRef(userId) {
 function loadHabits(userId, callback) {
     return getHabitsRef(userId)
         .orderBy("createdAt", "desc")
-        .onSnapshot(function(snapshot) {
+        .onSnapshot(function (snapshot) {
             const habits = [];
 
-            snapshot.forEach(function(doc) {
+            snapshot.forEach(function (doc) {
                 habits.push({
                     id: doc.id,
                     ...doc.data()
@@ -48,7 +48,7 @@ async function deleteHabit(userId, habitId) {
 
     const batch = db.batch();
 
-    completionSnapshot.forEach(function(doc) {
+    completionSnapshot.forEach(function (doc) {
         batch.delete(doc.ref);
     });
 
@@ -86,7 +86,7 @@ async function getCompletionsForWeek(userId, habitId) {
 
     const completions = [];
 
-    snapshot.forEach(function(doc) {
+    snapshot.forEach(function (doc) {
         completions.push({
             id: doc.id,
             ...doc.data()
@@ -98,10 +98,10 @@ async function getCompletionsForWeek(userId, habitId) {
 
 /* Loads all completion records in real time for dashboard stats. */
 function loadCompletions(userId, callback) {
-    return getCompletionsRef(userId).onSnapshot(function(snapshot) {
+    return getCompletionsRef(userId).onSnapshot(function (snapshot) {
         const completions = [];
 
-        snapshot.forEach(function(doc) {
+        snapshot.forEach(function (doc) {
             completions.push({
                 id: doc.id,
                 ...doc.data()
@@ -121,7 +121,7 @@ function getLastSevenDates() {
 
         date.setDate(date.getDate() - dayOffset);
 
-        dates.push(date.toISOString().split("T")[0]);
+        dates.push(formatDateKey(date));
     }
 
     return dates;
@@ -129,7 +129,7 @@ function getLastSevenDates() {
 
 /* Calculates current streak by checking completed dates backwards from today. */
 function calculateStreak(completions) {
-    const completedDates = completions.map(function(completion) {
+    const completedDates = completions.map(function (completion) {
         return completion.date;
     });
 
@@ -137,7 +137,7 @@ function calculateStreak(completions) {
     const currentDate = new Date();
 
     while (true) {
-        const dateString = currentDate.toISOString().split("T")[0];
+        const dateString = formatDateKey(currentDate);
 
         if (completedDates.includes(dateString)) {
             streak++;
