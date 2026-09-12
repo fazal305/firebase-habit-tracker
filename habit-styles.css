@@ -32,14 +32,14 @@ body {
     ),
     var(--bg-dark);
   color: var(--text-main);
-  font-family: "Inter", sans-serif;
+  font-family: "Karla", sans-serif;
 }
 
 h1,
 h2,
 h3,
 .brand-title {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Unbounded", sans-serif;
 }
 
 button,
@@ -289,7 +289,7 @@ input::placeholder {
   border: 1px solid var(--border-dark);
   border-radius: 999px;
   color: var(--accent-cyan);
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Unbounded", sans-serif;
   font-size: 0.78rem;
   font-weight: 800;
   padding: 6px 9px;
