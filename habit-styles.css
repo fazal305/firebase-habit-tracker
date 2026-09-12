@@ -432,6 +432,36 @@ input::placeholder {
   display: none;
 }
 
+.status-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 60;
+  transform: translateX(-50%);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  border: 1px solid transparent;
+}
+
+.status-toast.hidden {
+  display: none;
+}
+
+.status-toast.success {
+  background: rgba(0, 255, 136, 0.12);
+  border-color: var(--success-green);
+  color: var(--success-green);
+}
+
+.status-toast.error {
+  background: rgba(255, 56, 96, 0.12);
+  border-color: var(--danger-red);
+  color: var(--danger-red);
+}
+
 .habit-modal-content {
   width: min(520px, 100%);
   border: 1px solid rgba(0, 245, 255, 0.25);

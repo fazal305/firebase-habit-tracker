@@ -25,10 +25,26 @@ function getErrorMessage(errorCode) {
         "auth/operation-not-allowed": "Email/password login is not enabled in Firebase.",
         "auth/network-request-failed": "Network error. Check your internet connection.",
         "auth/configuration-not-found": "Firebase Authentication is not enabled for this project.",
-        "auth/api-key-not-valid": "Firebase API key is not valid. Check your Firebase config."
+        "auth/api-key-not-valid": "Firebase API key is not valid. Check your Firebase config.",
+        "auth/user-token-expired": "Your session has expired — please log in again.",
+        "permission-denied": "Your session has expired — please log in again."
     };
 
     return errorMessages[errorCode] || `Firebase error: ${errorCode}`;
+}
+
+/* True when an error indicates the user's auth session/token is no longer valid. */
+function isSessionExpiredError(error) {
+    return !!error && (error.code === "auth/user-token-expired" || error.code === "permission-denied");
+}
+
+/* Signs the user out after their session has expired so they land back on the login screen. */
+async function forceSignOutExpiredSession() {
+    try {
+        await auth.signOut();
+    } catch (error) {
+        // Already signed out or offline; nothing more to do here.
+    }
 }
 
 /* Creates a new Firebase user account with email and password. */

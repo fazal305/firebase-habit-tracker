@@ -6,6 +6,9 @@ const appState = {
     completionUnsubscribe: null
 };
 
+/* Message queued to show on the auth screen after a forced sign-out (e.g. expired session). */
+let pendingAuthNotice = null;
+
 const appRoot = document.getElementById("app-root");
 const habitModal = document.getElementById("habit-modal");
 const habitForm = document.getElementById("habit-form");
@@ -16,8 +19,11 @@ const habitIconInput = document.getElementById("habit-emoji");
 const habitFrequencyInput = document.getElementById("habit-frequency");
 const habitColorInput = document.getElementById("habit-color");
 
+let manualSignOut = false;
+
 function init() {
     watchAuthState(function (user) {
+        const hadUser = !!appState.currentUser;
         appState.currentUser = user;
 
         if (user) {
@@ -25,6 +31,12 @@ function init() {
             startRealtimeListeners(user.uid);
         } else {
             stopRealtimeListeners();
+
+            if (hadUser && !manualSignOut) {
+                pendingAuthNotice = getErrorMessage("auth/user-token-expired");
+            }
+
+            manualSignOut = false;
             renderAuthScreen("signin");
         }
     });
@@ -96,6 +108,12 @@ function renderAuthScreen(mode) {
 
     const formError = createElement("small", "form-error");
     formError.id = "auth-form-error";
+
+    if (pendingAuthNotice) {
+        formError.textContent = pendingAuthNotice;
+        pendingAuthNotice = null;
+    }
+
     const submitButton = createElement("button", "btn-neon full-width", isSignUp ? "Sign Up" : "Sign In");
     submitButton.type = "submit";
     form.append(formError, submitButton);
@@ -191,7 +209,10 @@ function renderHeader(user) {
 
     const signOutButton = createElement("button", "secondary-btn", "Sign Out");
     signOutButton.type = "button";
-    signOutButton.addEventListener("click", signOutUser);
+    signOutButton.addEventListener("click", function () {
+        manualSignOut = true;
+        signOutUser();
+    });
 
     header.append(titleWrap, signOutButton);
     return header;
@@ -422,7 +443,14 @@ async function handleHabitFormSubmit(event) {
         }
 
         closeHabitModal();
+        showStatusToast(habitId ? "Habit updated successfully." : "Habit added successfully.", "success");
     } catch (error) {
+        if (isSessionExpiredError(error)) {
+            closeHabitModal();
+            handleSessionExpired();
+            return;
+        }
+
         showError("habit-form-error", "Could not save habit. Check Firebase rules.");
     }
 }
@@ -434,10 +462,17 @@ async function handleToggleComplete(habitId) {
     try {
         if (isCompleted) {
             await markIncomplete(appState.currentUser.uid, habitId, today);
+            showStatusToast("Habit marked incomplete.", "success");
         } else {
             await markComplete(appState.currentUser.uid, habitId, today);
+            showStatusToast("Habit marked complete!", "success");
         }
     } catch (error) {
+        if (isSessionExpiredError(error)) {
+            handleSessionExpired();
+            return;
+        }
+
         console.error(error);
     }
 }
@@ -449,7 +484,13 @@ async function handleDeleteHabit(habitId) {
 
     try {
         await deleteHabit(appState.currentUser.uid, habitId);
+        showStatusToast("Habit deleted.", "success");
     } catch (error) {
+        if (isSessionExpiredError(error)) {
+            handleSessionExpired();
+            return;
+        }
+
         console.error(error);
     }
 }
@@ -532,6 +573,35 @@ function getPerfectDaysThisWeek(weekDates) {
             return isHabitCompletedOnDate(habit.id, date);
         });
     }).length;
+}
+
+let statusToastTimeout = null;
+
+/* Shows a brief auto-dismissing status message (success or error) outside the modal. */
+function showStatusToast(message, type) {
+    const toast = document.getElementById("status-toast");
+
+    if (!toast) {
+        return;
+    }
+
+    toast.textContent = message;
+    toast.classList.remove("hidden", "success", "error");
+    toast.classList.add(type === "error" ? "error" : "success");
+
+    if (statusToastTimeout) {
+        clearTimeout(statusToastTimeout);
+    }
+
+    statusToastTimeout = setTimeout(function () {
+        toast.classList.add("hidden");
+    }, 3000);
+}
+
+/* Handles an expired/invalid session: notifies the user and signs them out to the login screen. */
+function handleSessionExpired() {
+    pendingAuthNotice = getErrorMessage("auth/user-token-expired");
+    forceSignOutExpiredSession();
 }
 
 function showError(elementId, message) {
