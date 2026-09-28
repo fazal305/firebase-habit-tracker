@@ -5,7 +5,7 @@ const firebaseConfig = {
   storageBucket: "fir-habit-tracker-610d9.firebasestorage.app",
   messagingSenderId: "405029531980",
   appId: "1:405029531980:web:e017bdf7564e3b18ed1fe9",
-  measurementId: "G-61D1Z040J5"
+  measurementId: "G-61D1Z040J5",
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -15,89 +15,104 @@ const db = firebase.firestore();
 
 /* Converts Firebase auth errors into simple user-friendly messages. */
 function getErrorMessage(errorCode) {
-    const errorMessages = {
-        "auth/email-already-in-use": "This email is already registered.",
-        "auth/invalid-email": "Please enter a valid email address.",
-        "auth/weak-password": "Password should be at least 6 characters.",
-        "auth/user-not-found": "No account found with this email.",
-        "auth/wrong-password": "Incorrect password.",
-        "auth/invalid-credential": "Invalid email or password.",
-        "auth/operation-not-allowed": "Email/password login is not enabled in Firebase.",
-        "auth/network-request-failed": "Network error. Check your internet connection.",
-        "auth/configuration-not-found": "Firebase Authentication is not enabled for this project.",
-        "auth/api-key-not-valid": "Firebase API key is not valid. Check your Firebase config.",
-        "auth/user-token-expired": "Your session has expired — please log in again.",
-        "permission-denied": "Your session has expired — please log in again."
-    };
+  const errorMessages = {
+    "auth/email-already-in-use": "This email is already registered.",
+    "auth/invalid-email": "Please enter a valid email address.",
+    "auth/weak-password": "Password should be at least 6 characters.",
+    "auth/user-not-found": "No account found with this email.",
+    "auth/wrong-password": "Incorrect password.",
+    "auth/invalid-credential": "Invalid email or password.",
+    "auth/operation-not-allowed":
+      "Email/password login is not enabled in Firebase.",
+    "auth/network-request-failed":
+      "Network error. Check your internet connection.",
+    "auth/configuration-not-found":
+      "Firebase Authentication is not enabled for this project.",
+    "auth/api-key-not-valid":
+      "Firebase API key is not valid. Check your Firebase config.",
+    "auth/user-token-expired":
+      "Your session has expired — please log in again.",
+    "permission-denied": "Your session has expired — please log in again.",
+  };
 
-    return errorMessages[errorCode] || `Firebase error: ${errorCode}`;
+  return errorMessages[errorCode] || `Firebase error: ${errorCode}`;
 }
 
 /* True when an error indicates the user's auth session/token is no longer valid. */
 function isSessionExpiredError(error) {
-    return !!error && (error.code === "auth/user-token-expired" || error.code === "permission-denied");
+  return (
+    !!error &&
+    (error.code === "auth/user-token-expired" ||
+      error.code === "permission-denied")
+  );
 }
 
 /* Signs the user out after their session has expired so they land back on the login screen. */
 async function forceSignOutExpiredSession() {
-    try {
-        await auth.signOut();
-    } catch (error) {
-        // Already signed out or offline; nothing more to do here.
-    }
+  try {
+    await auth.signOut();
+  } catch (error) {
+    // Already signed out or offline; nothing more to do here.
+  }
 }
 
 /* Creates a new Firebase user account with email and password. */
 async function signUp(email, password) {
-    try {
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        return {
-            success: true,
-            user: userCredential.user
-        };
-    } catch (error) {
-        return {
-            success: false,
-            message: getErrorMessage(error.code)
-        };
-    }
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(
+      email,
+      password,
+    );
+    return {
+      success: true,
+      user: userCredential.user,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error.code),
+    };
+  }
 }
 
 /* Signs in an existing Firebase user with email and password. */
 async function signIn(email, password) {
-    try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        return {
-            success: true,
-            user: userCredential.user
-        };
-    } catch (error) {
-        return {
-            success: false,
-            message: getErrorMessage(error.code)
-        };
-    }
+  try {
+    const userCredential = await auth.signInWithEmailAndPassword(
+      email,
+      password,
+    );
+    return {
+      success: true,
+      user: userCredential.user,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error.code),
+    };
+  }
 }
 
 /* Signs out the current Firebase user. */
 async function signOutUser() {
-    try {
-        await auth.signOut();
+  try {
+    await auth.signOut();
 
-        return {
-            success: true
-        };
-    } catch (error) {
-        return {
-            success: false,
-            message: getErrorMessage(error.code)
-        };
-    }
+    return {
+      success: true,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error.code),
+    };
+  }
 }
 
 /* Watches Firebase login state and runs a callback when the user changes. */
 function watchAuthState(callback) {
-    auth.onAuthStateChanged(function(user) {
-        callback(user);
-    });
+  auth.onAuthStateChanged(function (user) {
+    callback(user);
+  });
 }
